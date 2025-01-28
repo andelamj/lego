@@ -7,8 +7,18 @@ const AddProduct = () => {
         price: '',
         manufacturer: '',
         description: '',
+        logoFile: null, // Dodana opcija za odabir slike
     });
     const [manufacturers, setManufacturers] = useState([]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleFileChange = (e) => {
+        setFormData({ ...formData, logoFile: e.target.files[0] });
+    };
 
     useEffect(() => {
         const fetchManufacturers = async () => {
@@ -23,22 +33,24 @@ const AddProduct = () => {
         fetchManufacturers();
     }, []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+    
+        const productData = new FormData();
+        productData.append('name', formData.name);
+        productData.append('price', formData.price);
+        productData.append('manufacturer', formData.manufacturer);
+        productData.append('description', formData.description);
+        if (formData.logoFile) {
+            productData.append('logo', formData.logoFile);
+        }
+    
         try {
             const token = localStorage.getItem('token');
-           
-
-            await axios.post('http://localhost:5000/api/products', formData, {
+            await axios.post('http://localhost:5000/api/products', productData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'multipart/form-data',
                 },
             });
 
@@ -48,6 +60,7 @@ const AddProduct = () => {
                 price: '',
                 manufacturer: '',
                 description: '',
+                logoFile: null, // Resetiraj podatke
             });
         } catch (err) {
             console.error('Greška prilikom dodavanja proizvoda:', err);
@@ -73,14 +86,13 @@ const AddProduct = () => {
                 onChange={handleChange}
                 required
             />
-             <textarea
+            <textarea
                 name="description"
                 placeholder="Opis proizvoda"
                 value={formData.description}
                 onChange={handleChange}
             />
-            <div>
-                <select
+            <select
                 name="manufacturer"
                 value={formData.manufacturer}
                 onChange={handleChange}
@@ -92,9 +104,15 @@ const AddProduct = () => {
                         {manu.name}
                     </option>
                 ))}
-            </select></div>
-            
-           
+            </select>
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+            />
+            {formData.logoFile && (
+                <p style={{ marginTop: '10px' }}>Odabrana slika: {formData.logoFile.name}</p>
+            )}
             <button type="submit">Dodaj proizvod</button>
         </form>
     );

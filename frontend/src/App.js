@@ -13,7 +13,9 @@ import ManufacturerDetails from './pages/ManufacturerDetails';
 import { AuthProvider, useAuth } from './AuthContext';
 import EditProduct from './pages/EditProduct';
 import EditManufacturer from './pages/EditManufacturer';
-
+import Korisnici from './Korisnici';
+import EditUser from './EditUser';
+import ChangePassword from './Password';
 
 const App = () => {
     const AuthenticatedRoutes = () => {
@@ -31,6 +33,12 @@ const App = () => {
                     <Route path="/add-product" element={<AddProduct />} />
                     <Route path="/products/edit/:id" element={<EditProduct />} />
                     <Route path="/add-manufacturer" element={<AddManufacturer />} />
+                    <Route path="/users" element={<Korisnici />} />
+                    <Route path="/users/edit/:id" element={<EditUser />} />
+                    <Route path="/users/change-password/:id" element={<ChangePassword />} />
+
+
+
              
 
                 </Routes>

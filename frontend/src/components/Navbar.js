@@ -27,6 +27,7 @@ const Navbar = () => {
                     <>
                         <Link to="/add-product">Dodaj proizvod</Link>
                         <Link to="/add-manufacturer">Dodaj proizvođača</Link>
+                        <Link to="/users">Korisnici</Link>
                     </>
                 )}
 

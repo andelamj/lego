@@ -36,6 +36,8 @@ const ProductSchema = new mongoose.Schema({
     manufacturer: { type: mongoose.Schema.Types.ObjectId, ref: 'Manufacturer', required: true },
     price: { type: Number, required: true },
     description: { type: String },
+    logoUrl: { type: String }, 
+    createdAt: { type: Date, default: Date.now },
 });
 
 
@@ -86,6 +88,87 @@ const upload = multer({
         }
     },
 });
+
+// Endpoint za dohvaćanje svih korisnika (samo za administratore)
+app.get('/api/users', authenticateToken, authorizeAdmin, async (req, res) => {
+    try {
+        const users = await User.find({}, '-password'); // Dohvati sve korisnike, ali izuzmi polje lozinke
+        res.json(users);
+    } catch (err) {
+        console.error('Greška prilikom dohvaćanja korisnika:', err);
+        res.status(500).send('Greška prilikom dohvaćanja korisnika.');
+    }
+});
+
+app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).send('Korisnik nije pronađen.');
+        }
+
+        // Provjeri je li stara lozinka ispravna
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).send('Stara lozinka nije ispravna.');
+        }
+
+        // Hashiraj novu lozinku
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Ažuriraj lozinku u bazi
+        user.password = hashedPassword;
+        await user.save();
+
+        res.send('Lozinka je uspješno promijenjena.');
+    } catch (err) {
+        console.error('Greška prilikom promjene lozinke:', err);
+        res.status(500).send('Greška prilikom promjene lozinke.');
+    }
+});
+
+
+// Endpoint za dohvaćanje pojedinačnog korisnika
+app.get('/api/users/:id', authenticateToken, authorizeAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id); // Koristi ID iz URL-a
+        if (!user) {
+            return res.status(404).send('Korisnik nije pronađen.');
+        }
+        res.json(user);
+    } catch (err) {
+        console.error('Greška prilikom dohvaćanja korisnika:', err);
+        res.status(500).send('Greška prilikom dohvaćanja korisnika.');
+    }
+});
+
+
+// Endpoint za ažuriranje korisničkih podataka
+app.put('/api/users/:id', authenticateToken, authorizeAdmin, async (req, res) => {
+    try {
+        const { username, role } = req.body;
+
+        // Nađi korisnika i ažuriraj njegove podatke (osim lozinke)
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { username, role },
+            { new: true, runValidators: true } // `new: true` vraća ažuriranog korisnika
+        );
+
+        if (!updatedUser) {
+            return res.status(404).send('Korisnik nije pronađen.');
+        }
+
+        res.json(updatedUser);
+    } catch (err) {
+        console.error('Greška prilikom ažuriranja korisnika:', err);
+        res.status(500).send('Greška prilikom ažuriranja korisnika.');
+    }
+});
+
 
 app.post('/api/auth/register', async (req, res) => {
     const { username, password } = req.body;
@@ -165,26 +248,26 @@ app.get('/api/manufacturers/:id', async (req, res) => {
     }
 });
 
-
-app.post('/api/manufacturers', upload.single('logo'), authenticateToken, authorizeAdmin, async (req, res) => {
+app.post('/api/products', upload.single('logo'), authenticateToken, async (req, res) => {
     try {
-        const { name, yearFounded, country, description } = req.body;
+        const { name, price, manufacturer, description } = req.body;
 
-        const newManufacturer = new Manufacturer({
+        const newProduct = new Product({
             name,
-            yearFounded,
-            country,
+            price,
+            manufacturer,
             description,
-            logoUrl: `/uploads/${req.file.filename}`, 
+            logoUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
         });
 
-        await newManufacturer.save();
-        res.status(201).json(newManufacturer);
+        await newProduct.save();
+        res.status(201).json(newProduct);
     } catch (err) {
-        console.error('Error creating manufacturer:', err);
-        res.status(500).send('Error creating manufacturer');
+        console.error('Error adding product:', err); 
+        res.status(500).send(`Error adding product: ${err.message}`);
     }
 });
+
 
 app.put('/api/manufacturers/:id', async (req, res) => {
     try {
@@ -230,7 +313,7 @@ app.get('/api/products/:id', async (req, res) => {
     }
 });
 
-app.post('/api/products', authenticateToken, authorizeAdmin, async (req, res) => {
+app.post('/api/products', upload.single('logo'), authenticateToken, async (req, res) => {
     try {
         const { name, price, manufacturer, description } = req.body;
 
@@ -238,7 +321,8 @@ app.post('/api/products', authenticateToken, authorizeAdmin, async (req, res) =>
             name,
             price,
             manufacturer,
-            description        
+            description,
+            logoUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
         });
 
         await newProduct.save();

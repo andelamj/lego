@@ -16,7 +16,7 @@ const ProductList = () => {
                 const response = await axios.get('http://localhost:5000/api/products');
                 setProducts(response.data);
             } catch (err) {
-                setError('Greška.');
+                setError('Greška prilikom dohvaćanja proizvoda.');
             }
         };
 
@@ -46,7 +46,7 @@ const ProductList = () => {
                 );
                 alert('Proizvod uspješno obrisan.');
             } catch (err) {
-                alert('Greška.');
+                alert('Greška prilikom brisanja proizvoda.');
             }
         }
     };
@@ -56,7 +56,7 @@ const ProductList = () => {
     };
 
     const handleProductClick = (id) => {
-        navigate(`/products/${id}`); 
+        navigate(`/products/${id}`);
     };
 
     if (error) return <div>{error}</div>;
@@ -72,16 +72,23 @@ const ProductList = () => {
                                 <div
                                     className="product-card"
                                     key={product._id}
-                                    onClick={() => handleProductClick(product._id)} 
-                                    style={{ cursor: 'pointer' }} 
+                                    onClick={() => handleProductClick(product._id)}
+                                    style={{ cursor: 'pointer' }}
                                 >
+                                    {product.logoUrl && (
+                                        <img
+                                            src={`http://localhost:5000${product.logoUrl}`}
+                                            alt={product.name}
+                                            className="product-image"
+                                        />
+                                    )}
                                     <h3>{product.name}</h3>
                                     <p>Cijena: {product.price} €</p>
                                     {user?.role === 'admin' && (
                                         <div className="admin-buttons">
                                             <button
                                                 onClick={(e) => {
-                                                    e.stopPropagation(); 
+                                                    e.stopPropagation();
                                                     handleEdit(product._id);
                                                 }}
                                             >
@@ -89,7 +96,7 @@ const ProductList = () => {
                                             </button>
                                             <button
                                                 onClick={(e) => {
-                                                    e.stopPropagation(); 
+                                                    e.stopPropagation();
                                                     handleDelete(product._id);
                                                 }}
                                                 className="delete-button"
